@@ -23,24 +23,26 @@ def get_preprocessor():
     return preprocessor
 
 
-def get_model(MODEL_NAME = 'logistic_regression', n_iter = 10):
+def get_model(MODEL_NAME = 'logistic_regression'):
     if MODEL_NAME == 'logistic_regression':
         PARAMS = {'penalty': ['l1', 'l2'],
-                  'C': [0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000]}
+                  'C': [0.01, 0.1, 1, 10, 100, 1000]}
         MODEL = GridSearchCV(LogisticRegression(solver='liblinear'), PARAMS)
         # MODEL = RandomizedSearchCV(GradientBoostingClassifier(), PARAMS, n_iter=n_iter)
 
     elif MODEL_NAME == 'random_forest':
-        PARAMS = {'max_depth': [3, 5, 7, 15],
-                  'n_estimators': [10, 30, 70, 130, 300]}
+        PARAMS = {'max_depth': [3, 7, 11],
+                  'n_estimators': [10, 30, 70, 120]}
         MODEL = GridSearchCV(RandomForestClassifier(), PARAMS)
         # MODEL = RandomizedSearchCV(GradientBoostingClassifier(), PARAMS, n_iter=n_iter)
 
     elif MODEL_NAME == 'gradient_boost':
-        PARAMS = {'n_estimators': [10, 30, 70, 130, 300],
-                  'max_depth': [3, 5, 7, 15]}
+        PARAMS = {'max_depth': [3, 7, 11],
+                  'n_estimators': [10, 30, 70]}
+
         MODEL = GridSearchCV(GradientBoostingClassifier(), PARAMS)
         #MODEL = RandomizedSearchCV(GradientBoostingClassifier(), PARAMS, n_iter=n_iter)
+
     else:
         raise Exception('Sorry, there is no such model in the database')
 
