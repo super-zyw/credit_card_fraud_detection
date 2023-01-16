@@ -28,4 +28,4 @@ Results without SMOTE
 | Random Forest | 1 | 0.84 | 0.91 |
 | Gradient Boost | 0.89 | 0.74 | 0.8 |
 
-![Precision-Recall-Curve](precision-recall-curve.png)
+![Precision-Recall-Curve](precision_recall_curve.png)
