@@ -1,17 +1,17 @@
 from sklearn.metrics import precision_recall_curve
 import matplotlib.pyplot as plt
-from imblearn.pipeline import make_pipeline
+from imblearn.pipeline import Pipeline as imbpipeline
 from imblearn.over_sampling import SMOTE
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import classification_report
 from utils import *
 import argparse
 
 def main(FILE_NAME):
     # Split the dataset
     Xtrain, Xtest, ytrain, ytest = read_data(FILE_NAME)
-
-    # Define the steps in the pipeline
-    preprocessor = get_preprocessor()
-    smote = SMOTE(sampling_strategy='minority')
+    print('total number of training samples are {}, the fraud is {}, proportion is {:.4f}'.format(len(ytrain), sum(ytrain == 1), sum(ytrain == 1) / len(ytrain)))
+    print('total number of testing samples are {}, the fraud is {}, proportion is {:.4f}, '.format(len(ytest), sum(ytest == 1), sum(ytest == 1) / len(ytest)))
 
     # Define the model, and if use SMOTE or not
     model_names = [['logistic_regression', True], ['random_forest', True], ['gradient_boost', True],
@@ -20,34 +20,33 @@ def main(FILE_NAME):
     nrow = len(model_names[0])
     ncol = len(model_names) // 2
     fig, axis = plt.subplots(nrow, ncol)
-
+    stratified_kfold = StratifiedKFold(n_splits=3, shuffle=True, random_state=2023)
     # Run the models, and draw the precision-recall plot for each model
-    for i, (model_name, use_smote) in enumerate(model_names):
+    for i, (model_name, use_smt) in enumerate(model_names):
         print('[INFO]: running {} ...'.format(model_name))
-
-        model = get_model(MODEL_NAME = model_name)
+        preprocessor = get_preprocessor()
+        model, params = get_model(MODEL_NAME=model_name)
 
         # If use smote upsampling, then include it, else not
-        if use_smote:
-            pipeline = make_pipeline(preprocessor, smote, model)
-            pipeline.fit(Xtrain, ytrain)
-
+        if use_smt:
+            smote = SMOTE(sampling_strategy='minority', random_state = 2023)
+            pipeline = imbpipeline(steps=[('preprocesor', preprocessor),
+                                          ('smote', smote),
+                                          ('model', model)])
         else:
-            pipeline = make_pipeline(preprocessor, model)
-            pipeline.fit(Xtrain, ytrain)
+            pipeline = imbpipeline(steps = [('preprocesor', preprocessor),
+                                            ('model', model)])
 
-        best_est = model.best_estimator_
-        if model_name == 'random_forest':
-            y_score = best_est.predict_proba(preprocessor.transform(Xtest))
-            y_score = y_score[:, 1]
-        elif model_name == 'logistic_regression':
-            y_score = best_est.decision_function(preprocessor.transform(Xtest))
-        elif model_name == 'gradient_boost':
-            y_score = best_est.decision_function(preprocessor.transform(Xtest))
-        precision, recall, _ = precision_recall_curve(ytest, y_score)
+        grid_search = GridSearchCV(estimator = pipeline, param_grid = params, cv=stratified_kfold)
+        grid_search.fit(Xtrain, ytrain)
+
+        print('MODEL: {}, SMOTE: {}'.format(model_name, use_smt))
+        print(classification_report(ytrain, grid_search.predict(Xtrain)))
 
         # Draw the precision-recall plots
-        figure_title = 'MODEL: {}, SMOTE: {}'.format(model_name, use_smote)
+        y_pred = grid_search.predict_proba(Xtest)
+        precision, recall, _ = precision_recall_curve(ytest, y_pred[:, 1])
+        figure_title = 'MODEL: {}, SMOTE: {}'.format(model_name, use_smt)
         axis[i // ncol, i % ncol].set_title(figure_title)
         draw_plot(axis[i // ncol, i % ncol], precision, recall)
     plt.show()

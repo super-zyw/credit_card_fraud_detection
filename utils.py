@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn import pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
@@ -12,7 +12,8 @@ from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 def read_data(PATH):
     df = pd.read_csv(PATH)
     X, y = df.drop('Class', axis=1), df['Class']
-    Xtrain, Xtest, ytrain, ytest = train_test_split(X, y, test_size=0.2, random_state=2023)
+    # use y as the label for stratify and keep the proportion of the class in the train and test dataset
+    Xtrain, Xtest, ytrain, ytest = train_test_split(X, y, test_size=0.2, random_state=2023, stratify=y)
     return Xtrain, Xtest, ytrain, ytest
 
 def get_preprocessor():
@@ -25,28 +26,26 @@ def get_preprocessor():
 
 def get_model(MODEL_NAME = 'logistic_regression'):
     if MODEL_NAME == 'logistic_regression':
-        PARAMS = {'penalty': ['l1', 'l2'],
-                  'C': [0.01, 0.1, 1, 10, 100, 1000]}
-        MODEL = GridSearchCV(LogisticRegression(solver='liblinear'), PARAMS)
-        # MODEL = RandomizedSearchCV(GradientBoostingClassifier(), PARAMS, n_iter=n_iter)
+        PARAMS = {'model__penalty': ['l2'],
+                  'model__C': [0.01, 1]}
+        MODEL = LogisticRegression(solver='liblinear')
+
 
     elif MODEL_NAME == 'random_forest':
-        PARAMS = {'max_depth': [3, 7, 11],
-                  'n_estimators': [10, 30, 70, 120]}
-        MODEL = GridSearchCV(RandomForestClassifier(), PARAMS)
-        # MODEL = RandomizedSearchCV(GradientBoostingClassifier(), PARAMS, n_iter=n_iter)
+        PARAMS = {'model__max_depth': [3, 7, 11],
+                  'model__n_estimators': [10, 50, 100]}
+        MODEL = RandomForestClassifier()
 
     elif MODEL_NAME == 'gradient_boost':
-        PARAMS = {'max_depth': [3, 7, 11],
-                  'n_estimators': [10, 30, 70]}
-
-        MODEL = GridSearchCV(GradientBoostingClassifier(), PARAMS)
+        PARAMS = {'model__max_depth': [3, 7, 11],
+                  'model__n_estimators': [10, 30, 70]}
+        MODEL = GradientBoostingClassifier(subsample = 0.3)
         #MODEL = RandomizedSearchCV(GradientBoostingClassifier(), PARAMS, n_iter=n_iter)
 
     else:
         raise Exception('Sorry, there is no such model in the database')
 
-    return MODEL
+    return MODEL, PARAMS
 
 
 def draw_plot(ax, precision, recall):
