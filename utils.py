@@ -24,28 +24,28 @@ def get_preprocessor():
     return preprocessor
 
 
-def get_model(MODEL_NAME = 'logistic_regression'):
+def get_model(MODEL_NAME, CV_STRATEGY):
     if MODEL_NAME == 'logistic_regression':
-        PARAMS = {'model__penalty': ['l2'],
-                  'model__C': [0.01, 1]}
-        MODEL = LogisticRegression(solver='liblinear')
-
+        PARAMS = {'penalty': ['l2', 'l1'],
+                  'C': [0.01, 1, 100, 10000]}
+        MODEL =GridSearchCV(estimator=LogisticRegression(solver='liblinear'), param_grid=PARAMS, cv= CV_STRATEGY)
 
     elif MODEL_NAME == 'random_forest':
-        PARAMS = {'model__max_depth': [3, 7, 11],
-                  'model__n_estimators': [10, 50, 100]}
-        MODEL = RandomForestClassifier()
+        PARAMS = {'max_depth': [3, 7, 11],
+                  'n_estimators': [10, 30, 70]}
+
+        MODEL = GridSearchCV(estimator=RandomForestClassifier(), param_grid=PARAMS, cv= CV_STRATEGY)
 
     elif MODEL_NAME == 'gradient_boost':
-        PARAMS = {'model__max_depth': [3, 7, 11],
-                  'model__n_estimators': [10, 30, 70]}
-        MODEL = GradientBoostingClassifier(subsample = 0.3)
+        PARAMS = {'max_depth': [3, 7, 11],
+                  'n_estimators': [10, 30, 70]}
+        MODEL = GridSearchCV(estimator=GradientBoostingClassifier(subsample = 0.3), param_grid=PARAMS, cv= CV_STRATEGY)
         #MODEL = RandomizedSearchCV(GradientBoostingClassifier(), PARAMS, n_iter=n_iter)
 
     else:
         raise Exception('Sorry, there is no such model in the database')
 
-    return MODEL, PARAMS
+    return MODEL
 
 
 def draw_plot(ax, precision, recall):
